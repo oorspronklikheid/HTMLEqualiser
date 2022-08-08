@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title></title>
+</head>
+<body>
+	stuff : <br>
+<input id='Vol' type="range" min="10" max="100" step= 10 orient="vertical"  />VOL
+<input id='low' type="range" min="10" max="100" step= 10 orient="vertical"  />Low
+<input id='mid' type="range" min="10" max="100" step= 10 orient="vertical" />Mids
+<input id='hig' type="range" min="10" max="100" step= 10 orient="vertical" />HIGH!<br>
+<button onclick="gencontext()" >Pressy</button>
+</body>
+<script type="text/javascript">
+	function playByteArray( bytes ) {
+    var buffer = new Uint8Array( bytes.length );
+    buffer.set( new Uint8Array(bytes), 0 );
+
+    context.decodeAudioData(buffer.buffer, play);
+}
+
+function play( audioBuffer ) {
+    var source = context.createBufferSource();
+
+    source.buffer = audioBuffer;
+    source.connect( context.destination );
+    source.start(0);
+}
+
+let  audioCtx ; //= new (window.AudioContext || window.webkitAudioContext)();
+
+// Stereo
+var channels = 2;
+
+ function gencontext(){
+audioCtx = new AudioContext();
+const frameCount = audioCtx.sampleRate * 2.0;
+var myArrayBuffer = audioCtx.createBuffer(channels, frameCount, audioCtx.sampleRate);
+  
+ var Vol= document.getElementById('Vol').value/100 ; 
+  for (let channel = 0; channel < channels; channel++) 
+  {
+  
+   const nowBuffering = myArrayBuffer.getChannelData(channel);
+   for (let i = 0; i < frameCount; i++) 
+   {
+   		nowBuffering[i]  = Math.sin( 440 / 44000 * i *3.141 * 2 )*Vol ; 
+    	// nowBuffering[i]  = Math.random() * 0.02 - 0.01;
+   }
+  }
+
+  const source = audioCtx.createBufferSource();// set the buffer in the AudioBufferSourceNode
+  source.buffer = myArrayBuffer;// connect the AudioBufferSourceNode to the
+  source.connect(audioCtx.destination);// destination so we can hear the sound
+  source.start();// start the source playing
+  //I stole codes here : https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createBufferSource , https://mdn.github.io/webaudio-examples/audio-buffer/
+ }
+</script>
+</html>
