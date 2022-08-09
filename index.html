@@ -7,48 +7,162 @@
 </head>
 <body>
 	stuff : <br>
-<input id='Vol' type="range" min="10" max="100" step= 10 orient="vertical"  />VOL
+<input id='vol' type="range" min="10" max="100" step= 10 orient="vertical"  />VOL
 <input id='low' type="range" min="10" max="100" step= 10 orient="vertical"  />Low
 <input id='mid' type="range" min="10" max="100" step= 10 orient="vertical" />Mids
-<input id='hig' type="range" min="10" max="100" step= 10 orient="vertical" />HIGH!<br>
+<input id='hig' type="range" min="10" max="100" step= 10 orient="vertical" />HIGH!
+<input id='freq' type="range" min="0" max="100" step= 0.1 orient="vertical" />Freq<br>
 <button onclick="gencontext()" >Pressy</button>
+<div id='stats'>
+	
+</div>
 </body>
 <script type="text/javascript">
-	function playByteArray( bytes ) {
-    var buffer = new Uint8Array( bytes.length );
-    buffer.set( new Uint8Array(bytes), 0 );
+// 	function playByteArray( bytes ) {
+//     var buffer = new Uint8Array( bytes.length );
+//     buffer.set( new Uint8Array(bytes), 0 );
 
-    context.decodeAudioData(buffer.buffer, play);
-}
+//     context.decodeAudioData(buffer.buffer, play);
+// }
 
-function play( audioBuffer ) {
-    var source = context.createBufferSource();
+// function play( audioBuffer ) {
+//     var source = context.createBufferSource();
 
-    source.buffer = audioBuffer;
-    source.connect( context.destination );
-    source.start(0);
-}
+//     source.buffer = audioBuffer;
+//     source.connect( context.destination );
+//     source.start(0);
+// }
 
 let  audioCtx ; //= new (window.AudioContext || window.webkitAudioContext)();
 
 // Stereo
 var channels = 2;
+var vol= 20/100 ; 
+ // var Vol= 50 document.getElementById('Vol').value/100 ; 
+
+
+
+// document.onload() = function() {
+// 	console.log('bwha??')	
+// }
+
+var frequency ; 
+
+window.onload = (event) => {
+	console.log('wha??')	
+  let volume = document.getElementById('vol');
+  volume.oninput =(event) => {
+  vol = event.target.value/500;
+  console.log(vol);
+  }
+  let freq = document.getElementById('freq');
+  freq.oninput =(event) => {
+  f = event.target.value;
+  frequency = 440* Math.pow(10, f/100)
+  // console.log(frequency);
+  updateDive();
+  }
+  
+}
+
+
+
+var Fs = 44100;      /* sample rate in samples per second */
+var Pi = 3.141592;   /* the value of Pi */
+var f0
+var Q
+var w0
+var alpha
+var a0
+var a1
+var a2
+var b0
+var b1
+var b2
+
+function updateDive() {
+
+
+
+
+/* These varing point values implement the specific filter type */
+f0 = frequency;                /* cut-off (or center) frequency in Hz */
+Q = 1.5;                 /* filter Q */
+w0 = 2 * Pi * f0 / Fs;
+alpha = Math.sin(w0) / (2 * Q);
+a0 = 1 + alpha;
+a1 = -2 * Math.cos(w0);
+a2 = 1 - alpha;
+b0 = (1 + Math.cos(w0)) / 2;
+b1 = -(1 + Math.cos(w0));
+b2 = (1 + Math.cos(w0)) / 2;
+
+
+
+  let divvy = document.getElementById("stats")
+  divvy.innerHTML = "Frequency : " + frequency + "<br>";
+  divvy.innerHTML += "f0 : " + Math.round(f0*100)/100 + "<br>";
+  divvy.innerHTML += "Q : " + Math.round(Q*100)/100 + "<br>";
+  divvy.innerHTML += "w0 : " + Math.round(w0*100)/100 + "<br>";
+  divvy.innerHTML += "alpha : " + Math.round(alpha*100)/100 + "<br>";
+  divvy.innerHTML += "a0 : " + Math.round(a0*100)/100 + "<br>";
+  divvy.innerHTML += "a1 : " + Math.round(a1*100)/100 + "<br>";
+  divvy.innerHTML += "a2 : " + Math.round(a2*100)/100 + "<br>";
+  divvy.innerHTML += "b0 : " + Math.round(b0*100)/100 + "<br>";
+  divvy.innerHTML += "b1 : " + Math.round(b1*100)/100 + "<br>";
+  divvy.innerHTML += "b2 : " + Math.round(b2*100)/100 + "<br>";
+
+
+
+
+
+}
+
 
  function gencontext(){
 audioCtx = new AudioContext();
-const frameCount = audioCtx.sampleRate * 2.0;
+const frameCount = audioCtx.sampleRate * 1.0;
 var myArrayBuffer = audioCtx.createBuffer(channels, frameCount, audioCtx.sampleRate);
   
- var Vol= document.getElementById('Vol').value/100 ; 
   for (let channel = 0; channel < channels; channel++) 
   {
   
+
+  var PrevSample = {}
+  PrevSample[0] = 0
+  PrevSample[1] = 0 
+  PrevSample[2] = 0 
    const nowBuffering = myArrayBuffer.getChannelData(channel);
    for (let i = 0; i < frameCount; i++) 
    {
-   		nowBuffering[i]  = Math.sin( 440 / 44000 * i *3.141 * 2 )*Vol ; 
+   		nowBuffering[i]  = Math.sin( 440 / Fs * i *Pi * 2 )* vol ; 
+      if(i > 3)
+      {
+
     	// nowBuffering[i]  = Math.random() * 0.02 - 0.01;
+      /* The Buffer[] array holds the incoming samples, PrevSample[] holds intermediate results */
+
+      // float Buffer[1024];         /* this array holds 1024 elements numbered 0 through 1023 */
+      // float PrevSample[3];        /* this array holds 3 elements numbered 0 through 2 */
+
+      /* The code below executes repeatedly as long as the value of I is less than N */
+      /* Since I was initialized to 0 above, and N was set to 1024, this code executes 1,024 times */
+      
+        PrevSample[2] = PrevSample[1];   /* Slide the samples over one position */
+        PrevSample[1] = PrevSample[0];
+        PrevSample[0] = nowBuffering[i];
+
+        nowBuffering[i] = ( b0 / a0 * PrevSample[0]) +
+        (b1 / a0 * PrevSample[1]) +
+        (b2 / a0 * PrevSample[2]) -
+        (a1 / a0 * nowBuffering[i - 1]) -
+        (a2 / a0 * nowBuffering[i - 2]);
+        // console.log(nowBuffering[i])
+      
+      }
+      // }            
    }
+   console.log('buffered' )
   }
 
   const source = audioCtx.createBufferSource();// set the buffer in the AudioBufferSourceNode
@@ -56,6 +170,8 @@ var myArrayBuffer = audioCtx.createBuffer(channels, frameCount, audioCtx.sampleR
   source.connect(audioCtx.destination);// destination so we can hear the sound
   source.start();// start the source playing
   //I stole codes here : https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createBufferSource , https://mdn.github.io/webaudio-examples/audio-buffer/
+
+  //https://ethanwiner.com/eq-dsp.htm
  }
 </script>
 </html>
