@@ -3,227 +3,308 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title></title>
-  <style type="text/css"> 
-  #sliderarea {
-  width: 250px;
-  height: 250px;
-  border: 1px solid red;
-  -webkit-transform: rotate(-90deg);
-  -moz-transform: rotate(-90deg);
-  -o-transform: rotate(-90deg);
-  -ms-transform: rotate(-90deg);
-  transform: rotate(-90deg);
-}
-
-td {
-  /*height: 80px;*/
-  /*width: 160px;*/
-  text-align: center;
-  /*vertical-align: middle;*/
-}
-
-.dark-mode {
-  background-color: #334;
-  color: white;
-}
-
-</style>
+	<title>It has a title</title>
 </head>
-<body>
-<div id="sliderarea">
-  <table>
-  <tr>
-    <td> 0</td><td>VOL<br><input id='vol' type="range" min="10" max="100" step= 10   /></td><td>11</td>
-  </tr>  
-  <tr>
-     <td> 110</td> <td>Generated Freq<br><input id='gfreq' type="range" min="0" max="100" step= 0.1  /></td> <td>4400</td>
-  </tr>  
-  <tr>
-     <td> 110</td> <td>Cutt off freq<br><input id='freq' type="range" min="0" max="100" step= 0.1  /></td> <td>4400</td>
-  </tr>
-  <tr>
-     <td>0.1</td>  <td>Q<br><input id='Q' type="range" min="0.1" max="10" step= 0.1  /></td><td>10</td>
-  </tr>
-  </table>
+<style type="text/css">
+	* { margin: 0; padding: 0;}
 
-</div>  
-<button onclick="gencontext()" >Pressy</button>
-<button id ='dark'>Darkness</button>
-<div id='stats'>
-	
-</div>
+	body, html { height:100%; }
+
+	#c {
+	    position:absolute;
+	    width:100%;
+	    height:100%;
+	}
+	svg text {
+	    -webkit-user-select: none;
+	       -moz-user-select: none;
+	        -ms-user-select: none;
+	            user-select: none;
+	}
+	svg text::selection {
+	    background: none;
+	}
+</style>
+<body id='b'>
+<!-- <canvas id='canny'></canvas> -->
+<svg id='svgy' width='100%' height='99%'></svg>
 </body>
 <script type="text/javascript">
-// 	function playByteArray( bytes ) {
-//     var buffer = new Uint8Array( bytes.length );
-//     buffer.set( new Uint8Array(bytes), 0 );
+function getRandomInt(max) {
+  return Math.floor(Math.random() * max);
+}	
+	// var c = document.getElementById("canny");
+	var s = document.getElementById("svgy");	
+	var b = document.getElementById("b");
 
-//     context.decodeAudioData(buffer.buffer, play);
-// }
-
-// function play( audioBuffer ) {
-//     var source = context.createBufferSource();
-
-//     source.buffer = audioBuffer;
-//     source.connect( context.destination );
-//     source.start(0);
-// }
-
-let  audioCtx ; //= new (window.AudioContext || window.webkitAudioContext)();
-
-// Stereo
-var channels = 2;
-var vol= 20/100 ; 
- // var Vol= 50 document.getElementById('Vol').value/100 ; 
+	// var button = { x : 75 , y : 50 , w:100 , h:50  , vx:0 , vy:0 , col:'#e9e9edff'  }
+	// var ball = { x : 0 , y : 0 , r:8  , vx:0 , vy:0 , mode:'float' }
+	// var sloot = { x : s.clientWidth/2 , y : s.clientHeight/2 , w:200 , h:6 , vx:0 , vy:0  , mode:'float' }
+	// var mous = { x : 0 , y : 0 }
+	var options = [ 'fall' ,'move' , 'grow' , 'ballfall']
+	// var mode = options[getRandomInt(4)];
 
 
+	var selectedmode = parseInt(localStorage.getItem('mode'));
+	console.log('hi')
+	console.log(selectedmode)
+	console.log(typeof(selectedmode))
+	// if(selectedmode == null || isNaN(selectedmode) || typeof(selectedmode) == "undefined" )
+	if(!selectedmode)
+	{
+		console.log('wtf')
+		localStorage.setItem('mode', 0);
+		selectedmode = 0 ;
+	}
 
-// document.onload() = function() {
-// 	console.log('bwha??')	
-// }
-
-var frequency  = 440 ; 
-
-window.onload = (event) => {
-  updateDive()
-	console.log('wha??')	
-  let volume = document.getElementById('vol');
-  volume.oninput =(event) => {
-  vol = event.target.value/500;
-  console.log(vol);
-  }
-  let freq = document.getElementById('freq');
-  freq.oninput =(event) => {
-  f = event.target.value;
-  frequency = 110* Math.pow(10, f/62)
-  // console.log(frequency);
-  updateDive();
-  }
-   
-  let Q = document.getElementById('Q');
-  Q.oninput =(event) => {
-  updateDive();
-  }
-  let dark = document.getElementById('dark');
-  dark.onclick =(event) => {
-  var element = document.body;
-   element.classList.toggle("dark-mode");
-  
-  }
-  let gfreq = document.getElementById('gfreq');
-  gfreq.oninput =(event) => {
-    gfrequency = 110* Math.pow(10, gfreq.value/62) ; 
-    updateDive();
-
-  
-  }
+	localStorage.setItem('mode', (selectedmode + 1) % 4  );
+	
+	var mode = options[selectedmode];
+	document.title = "It has a title - " + mode; 
+	// mode = 'fall'
 
 
-  
-}
+	var tempmode = false
+	function loop() {
 
-var gfrequency = 440 ; 
+		var col = "#676774ff"; 
+		r = 8 ;  
 
-var Fs = 44100;      /* sample rate in samples per second */
-var Pi = 3.141592;   /* the value of Pi */
-var f0
-var Q
-var w0
-var alpha
-var a0
-var a1
-var a2
-var b0
-var b1
-var b2
+		if( (mous.x  < button.x+button.w &&
+		mous.x  > button.x- button.w &&
+		mous.y  < button.y+button.h &&
+		mous.y  > button.y-button.h  )||
+		kbd.reset == 'y' 
+			
 
-function updateDive() {
+		)
+		{
+			//kbd.dir = 'right'
+			if(mous.down == 'y' || kbd.reset == 'y'  )
+			{
+				if(ball.y  + ball.r >  (s.clientHeight -10 ) && mode == 'ballfall')
+				{
+					extraball = ball
+					console.log('new player entered chat')
+				}else {
+					// extraball.mode = 'hidden' ;
+					// console.log('hiding?') ;
+				}
 
-/* These varing point values implement the specific filter type */
-f0 = frequency;                /* cut-off (or center) frequency in Hz */
-Q = document.getElementById('Q').value;                /* filter Q */ 
-w0 =   2 * Pi * f0 / Fs;
-alpha = Math.sin(w0) / (2 * Q);
-a0 =   1 + alpha;
-a1 =  -2 * Math.cos(w0);
-a2 =   1 - alpha;
-b0 =  (1 + Math.cos(w0)) / 2;
-b1 = -(1 + Math.cos(w0));
-b2 =  (1 + Math.cos(w0)) / 2;
-
-  let divvy = document.getElementById("stats")
-  gfrequency
-  divvy.innerHTML = "Generated Frequency : " + gfrequency + "<br>";
-  divvy.innerHTML += "Frequency : " + frequency + "<br>";
-  divvy.innerHTML += "f0 : " + Math.round(f0*100)/100 + "<br>";
-  divvy.innerHTML += "Q : " + Math.round(Q*100)/100 + "<br>";
-  divvy.innerHTML += "w0 : " + Math.round(w0*100)/100 + "<br>";
-  divvy.innerHTML += "alpha : " + Math.round(alpha*100)/100 + "<br>";
-  divvy.innerHTML += "a0 : " + Math.round(a0*100)/100 + "<br>";
-  divvy.innerHTML += "a1 : " + Math.round(a1*100)/100 + "<br>";
-  divvy.innerHTML += "a2 : " + Math.round(a2*100)/100 + "<br>";
-  divvy.innerHTML += "b0 : " + Math.round(b0*100)/100 + "<br>";
-  divvy.innerHTML += "b1 : " + Math.round(b1*100)/100 + "<br>";
-  divvy.innerHTML += "b2 : " + Math.round(b2*100)/100 + "<br>";
+				tempmode = true 
+				// selectedmode += 1; 
+				mode = options[(selectedmode +1) % 4];
+				document.title = "It has a title - " + mode; 
+				dimension = [document.documentElement.clientWidth, document.documentElement.clientHeight];
+				button = { x : 75 , y : 50 , w:100 , h:50  , vx:0 , vy:0 , col:'#e9e9edff'  }
+				ball = { x : s.clientWidth/2 , y : s.clientHeight/2 , r:8  , vx:0 , vy:0 , ay:0 , ax:0 , mode:'float' }
+				sloot = { x : s.clientWidth/2 , y : s.clientHeight/2 , w:200 , h:6 , vx:0 , vy:0 ,ax:0 , ay:0   , mode:'float' }
 
 
-}
+			}else{
+				if(tempmode == true)
+				{
+					tempmode = false
+					selectedmode++; 
+				}
+			}
+			button.col = "#f0f0f0" ;
+		}else
+		{
+			button.col = '#e9e9edff' ;
+		}
 
 
- function gencontext(){
-audioCtx = new AudioContext();
-const frameCount = audioCtx.sampleRate * 1.0;
-var myArrayBuffer = audioCtx.createBuffer(channels, frameCount, audioCtx.sampleRate);
-  
-  for (let channel = 0; channel < channels; channel++) 
-  {
-  
+		if( mous.x  < ball.x+r &&
+		mous.x  > ball.x-r &&
+		mous.y  < ball.y+r &&
+		mous.y  > ball.y-r  
+		)
+		{
+			col = "#484851ff" ; 
+			if(mous.down == 'y' )
+			{
+				ball.mode = 'drag'
+			}
+			// console.log(mous.x);
+		}
+		if(ball.mode == 'drag')
+		{
+			col = "#0060dfff" ;
+			ball.x = mous.x ; 
 
-  var PrevSample = {}
-  PrevSample[0] = 0
-  PrevSample[1] = 0 
-  PrevSample[2] = 0 
-   const nowBuffering = myArrayBuffer.getChannelData(channel);
-   for (let i = 0; i < frameCount; i++) 
-   {
-   		nowBuffering[i]  = Math.sin( gfrequency / Fs * i *Pi * 2 )* vol ; 
-      if(i > 3)
-      {
+			// 	ball.x = s.clientWidth/2 - 100
+				// ball.x = s.clientWidth/2 + 100
+		}
+			if(ball.x < sloot.x - sloot.w/2 )
+			{
+				if(mode =='grow')
+				{
+					var right = sloot.x + sloot.w/2
+					sloot.w = ( right - ball.x ) 
+					sloot.x = right -sloot.w/2
+				}
+				if(mode =='fall')
+					sloot.ay = 0.3  //fall
+				// sloot.x = ( s.clientWidth/2 - sloot.w/2)
+				if(mode == 'move')
+					sloot.x = ball.x + sloot.w/2 //move
+				if(mode == 'ballfall')
+					ball.ay = 0.3  //fall
+			}
+			if(ball.x > sloot.x + sloot.w/2 )
+			{
 
-    	// nowBuffering[i]  = Math.random() * 0.02 - 0.01;
-      /* The Buffer[] array holds the incoming samples, PrevSample[] holds intermediate results */
+				if(mode =='grow')
+				{
+					var left = sloot.x - sloot.w/2
+					sloot.w = ( ball.x - left  ) 
+					sloot.x = left  + sloot.w/2
+				}
+				if(mode =='fall')
+					sloot.ay = 0.3
+				if(mode == 'move')
+					sloot.x = ball.x - sloot.w/2 
+				if(mode == 'ballfall')
+					ball.ay = 0.3  //fall
+			}
+			// 	sloot.w = ball.x - sloot.x 
 
-      // float Buffer[1024];         /* this array holds 1024 elements numbered 0 through 1023 */
-      // float PrevSample[3];        /* this array holds 3 elements numbered 0 through 2 */
 
-      /* The code below executes repeatedly as long as the value of I is less than N */
-      /* Since I was initialized to 0 above, and N was set to 1024, this code executes 1,024 times */
-      
-        PrevSample[2] = PrevSample[1];   /* Slide the samples over one position */
-        PrevSample[1] = PrevSample[0];
-        PrevSample[0] = nowBuffering[i];
+			var inner = '' 
 
-        nowBuffering[i] = ( b0 / a0 * PrevSample[0]) +
-        (b1 / a0 * PrevSample[1]) +
-        (b2 / a0 * PrevSample[2]) -
-        (a1 / a0 * nowBuffering[i - 1]) -
-        (a2 / a0 * nowBuffering[i - 2]);
-        // console.log(nowBuffering[i])
-      
-      }
-      // }            
-   }
-   console.log('buffered' )
-  }
 
-  const source = audioCtx.createBufferSource();// set the buffer in the AudioBufferSourceNode
-  source.buffer = myArrayBuffer;// connect the AudioBufferSourceNode to the
-  source.connect(audioCtx.destination);// destination so we can hear the sound
-  source.start();// start the source playing
-  //I stole codes here : https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createBufferSource , https://mdn.github.io/webaudio-examples/audio-buffer/
+		// var ctx = c.getContext("2d");
+		// ctx.clearRect(0, 0, s.clientWidth, s.clientHeight);
 
-  //https://ethanwiner.com/eq-dsp.htm
- }
+		if( (ball.y + ball.vy + ball.r ) > s.clientHeight && ball.vy > 0 )
+		{
+			ball.vy = -0.80* ball.vy ;
+		}
+		if( (sloot.y + sloot.vy + sloot.h ) > s.clientHeight && sloot.vy > 0 )
+		{
+			sloot.vy = -0.80* sloot.vy ;
+		}
+
+		if(extraball.mode != 'hidden')
+		{
+			if( (extraball.y + extraball.vy + extraball.r ) > s.clientHeight && extraball.vy > 0 )
+			{
+				extraball.vy = -0.80* extraball.vy ;
+			}
+			extraball.vx += extraball.ax;
+			extraball.vy += extraball.ay;
+			extraball.x  += extraball.vx;
+			extraball.y  += extraball.vy;
+			if(extraball.y  + extraball.r >  s.clientHeight)
+			{
+				extraball.y =  s.clientHeight -extraball.r ; 
+			}
+
+		}
+		// ball.vx += ball.ax;
+		ball.vy += ball.ay;
+		// console.log(kbd.dir)
+		if(kbd.dir == 'none')
+		{
+			// ball.vx = 0 ;
+		}
+		if(kbd.dir == 'right')
+		{
+			ball.x += 3 ;
+			console.log(ball.vx )
+		}
+		if(kbd.dir == 'left')
+		{
+			ball.x += -3 ;
+		}
+
+
+		ball.x  += ball.vx ;
+		ball.y  += ball.vy;
+
+		sloot.vx += sloot.ax;
+		sloot.vy += sloot.ay; 
+		sloot.x += sloot.vx ; 
+		sloot.y += sloot.vy ; 
+		if(ball.y  + ball.r >  s.clientHeight)
+		{
+			ball.y =  s.clientHeight -ball.r ; 
+		}
+		if(sloot.y  + sloot.h >  s.clientHeight)
+		{
+			sloot.y =  s.clientHeight -sloot.h ; 
+		}
+
+		// 
+		
+		inner += '<rect x="' + (button.x - button.w/2 )+ '" y="' + (button.y - button.h/2)  + '" rx="5" ry="5" width="' +button.w+ '" height="' + button.h + '" style="fill:' + button.col + ';stroke:#707070;stroke-width:0.5;opacity:1" />'
+		inner += '<text x="' + (button.x -20 )+ '" y="' + (button.y + 4 )  + '" >Reset</text>'
+
+		inner += '<rect x="' + (sloot.x - sloot.w/2 )+ '" y="' + (sloot.y - sloot.h/2)  + '" rx="5" ry="5" width="' + sloot.w+ '" height="' + sloot.h + '" style="fill:#e9e9edff;stroke:#707070;stroke-width:0.5;opacity:1" />'
+
+		inner += '<rect x="' + (sloot.x - sloot.w/2 )+ '" y="' + (sloot.y - sloot.h/2)  + '" rx="5" ry="5" width="' + (ball.x - (sloot.x - sloot.w/2 )) + '" height="' + sloot.h + '" style="fill:#4949edff;stroke:#4949edff;stroke-width:0.5;opacity:1" />'
+
+		inner += '<circle cx="' + ball.x + '" cy="' + ball.y + '" r="' + r + '" stroke="#eeeeeeff" stroke-width="2" fill="' + col + '" />'
+
+  	inner += '<text x="'+  (s.clientWidth/2- 100 -20 ) +'" y="' + (sloot.y + sloot.h/2)  + '" class="small"> 0 </text>'
+
+  	inner += '<text x="'+  (s.clientWidth/2+ 100 +10  ) +'" y="' + (sloot.y + sloot.h/2)  + '" class="small"> 100 </text>'
+  	inner += '<text x="'+  (s.clientWidth/2- 100 -90  ) +'" y="' + (sloot.y + sloot.h/2)  + '" class="small">Volume: </text>'
+		inner += '<text x="'+  (ball.x - 10   ) +'" y="' + (ball.y - sloot.h -10)  + '" class="small"> ' + Math.round(((ball.x - s.clientWidth/2+ 100 )*100)/(200))+ ' </text>'
+
+		// if(extraball.mode != 'hidden')
+		// 	inner += '<circle cx="' + extraball.x + '" cy="' + extraball.y + '" r="' + r + '" stroke="#eeeeeeff" stroke-width="2" fill="' + col + '" />'
+		s.innerHTML = inner
+
+	}
+	var dimension = [document.documentElement.clientWidth, document.documentElement.clientHeight];
+	var button = { x : 75 , y : 50 , w:100 , h:50  , vx:0 , vy:0 , col:'#e9e9edff'  }
+	var ball = { x : s.clientWidth/2 , y : s.clientHeight/2 , r:8  , vx:0 , vy:0 , ay:0 , ax:0 , mode:'float' }
+	var extraball = { x : s.clientWidth/2 , y : s.clientHeight/2 , r:8  , vx:0 , vy:0 , ay:0 , ax:0 , mode:'hidden' }
+	var sloot = { x : s.clientWidth/2 , y : s.clientHeight/2 , w:200 , h:6 , vx:0 , vy:0 ,ax:0 , ay:0   , mode:'float' }
+	var mous = { x : 0 , y : 0 }
+	var kbd = { dir:'none' , reset:'n' }
+
+    document.onmousemove = handleMouseMove;
+    document.onmousedown = handleDownClick ; 
+    document.onmouseup = handleUpClick ;  
+    document.onkeydown = handleDownKey ;  
+    document.onkeyup = handleUpKey ; 
+    function handleUpKey(argument) {
+    	if(argument.key == 'ArrowLeft' || argument.key == 'a')
+    		kbd.dir = 'none'
+    	if(argument.key == 'ArrowRight' || argument.key == 'd')
+    		kbd.dir = 'none'
+    	if(argument.key == 'Escape' )
+    		kbd.reset = 'n' 
+    }
+    function handleDownKey(argument) {
+    	// console.log(argument)
+    	if(argument.key == 'ArrowLeft' || argument.key == 'a')
+    		kbd.dir = 'left'
+    	if(argument.key == 'ArrowRight' || argument.key == 'd')
+    		kbd.dir = 'right'
+    	if(argument.key == 'Escape' )
+    		kbd.reset = 'y' 
+    }
+
+    function handleUpClick(event) {
+    	// console.log(event)/
+    	mous.down = 'n';
+		ball.mode = 'float'
+    }
+    function handleDownClick(event) {
+    	// console.log(event)
+    	mous.down = 'y';
+    }
+    function handleMouseMove(event) {
+        
+        mous.x = event.clientX;
+        mous.y = event.clientY;
+        
+	}
+	setInterval(loop, 1000/60);
+	
 </script>
 </html>
